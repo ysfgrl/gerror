@@ -2,7 +2,7 @@
 # Gerror for error handling
 [![Go Report Card](https://goreportcard.com/badge/github.com/ysfgrl/gerror)](https://goreportcard.com/report/github.com/ysfgrl/gerror)
 [![GoDoc](https://godoc.org/github.com/ysfgrl/fibersocket?status.svg)](https://godoc.org/github.com/ysfgrl/gerror)
-[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/ysfgrl/gerrorblob/master/LICENSE)
+[![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/ysfgrl/gerror/blob/master/LICENSE)
 
 
 
