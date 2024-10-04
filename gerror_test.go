@@ -2,8 +2,15 @@ package gerror
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 )
+
+func init() {
+	InitErrorHandler(func(error Error) {
+		fmt.Println("new Error")
+	})
+}
 
 func NewUserError() error {
 	return errors.New("NewUserError")

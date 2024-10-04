@@ -7,6 +7,36 @@ import (
 	"strings"
 )
 
+type ErrorHandler = func(error Error)
+
+var errorPool *Pool
+
+func InitErrorHandler(handler ErrorHandler) {
+	errorPool = &Pool{
+		handler: handler,
+		eChan:   make(chan Error),
+	}
+	go errorPool.start()
+}
+
+type Pool struct {
+	eChan   chan Error
+	handler ErrorHandler
+}
+
+func (p *Pool) add(error *Error) {
+	p.eChan <- *error
+}
+
+func (p *Pool) start() {
+	for {
+		select {
+		case e := <-p.eChan:
+			p.handler(e)
+		}
+	}
+}
+
 type Error struct {
 	File     string `json:"file"`
 	Function string `json:"function"`
@@ -36,15 +66,15 @@ func (e *Error) ToMap() map[string]interface{} {
 
 func (e *Error) PrintConsole() {
 	objectJSON := e.ToJsonByte()
-	print(objectJSON, "\n\n")
+	print(string(objectJSON), "\n\n")
 }
 
 func GetError(err error) *Error {
-	pc := make([]uintptr, 10) // at least 1 entry needed
+	pc := make([]uintptr, 10)
 	runtime.Callers(2, pc)
 	function := runtime.FuncForPC(pc[0])
 	file, line := function.FileLine(pc[0])
-	return &Error{
+	e := &Error{
 		Code:     "internal",
 		File:     strings.Replace(filepath.Base(file), ".go", "", 1),
 		Function: filepath.Base(function.Name()),
@@ -52,10 +82,33 @@ func GetError(err error) *Error {
 		Detail:   err.Error(),
 		Err:      err,
 	}
+	if errorPool != nil {
+		errorPool.add(e)
+	}
+	return e
+}
+
+func GetErrorCode(err error, code string) *Error {
+	pc := make([]uintptr, 10)
+	runtime.Callers(2, pc)
+	function := runtime.FuncForPC(pc[0])
+	file, line := function.FileLine(pc[0])
+	e := &Error{
+		Code:     "internal",
+		File:     strings.Replace(filepath.Base(file), ".go", "", 1),
+		Function: filepath.Base(function.Name()),
+		Line:     line,
+		Detail:   err.Error(),
+		Err:      err,
+	}
+	if errorPool != nil {
+		errorPool.add(e)
+	}
+	return e
 }
 
 func UserError(msg string, code string) *Error {
-	pc := make([]uintptr, 10) // at least 1 entry needed
+	pc := make([]uintptr, 10)
 	runtime.Callers(2, pc)
 	function := runtime.FuncForPC(pc[0])
 	file, line := function.FileLine(pc[0])
