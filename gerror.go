@@ -7,35 +7,42 @@ import (
 	"strings"
 )
 
-type ErrorHandler = func(error Error)
+//type ErrorHandler = func(error Error)
 
-var errorPool *Pool
+var (
+	LevelError = "error"
+	LevelFatal = "fatal"
+	LevelWarn  = "warn"
+	LevelInfo  = "info"
+)
 
-func InitErrorHandler(handler ErrorHandler) {
-	errorPool = &Pool{
-		handler: handler,
-		eChan:   make(chan Error),
-	}
-	go errorPool.start()
-}
-
-type Pool struct {
-	eChan   chan Error
-	handler ErrorHandler
-}
-
-func (p *Pool) add(error *Error) {
-	p.eChan <- *error
-}
-
-func (p *Pool) start() {
-	for {
-		select {
-		case e := <-p.eChan:
-			p.handler(e)
-		}
-	}
-}
+//var errorPool *Pool
+//
+//func InitErrorHandler(handler ErrorHandler) {
+//	errorPool = &Pool{
+//		handler: handler,
+//		eChan:   make(chan Error),
+//	}
+//	go errorPool.start()
+//}
+//
+//type Pool struct {
+//	eChan   chan Error
+//	handler ErrorHandler
+//}
+//
+//func (p *Pool) add(error *Error) {
+//	p.eChan <- *error
+//}
+//
+//func (p *Pool) start() {
+//	for {
+//		select {
+//		case e := <-p.eChan:
+//			p.handler(e)
+//		}
+//	}
+//}
 
 type Error struct {
 	File     string `json:"file"`
@@ -44,6 +51,7 @@ type Error struct {
 	Line     int    `json:"line"`
 	Code     string `json:"code"`
 	Err      error  `json:"-"`
+	Level    string `json:"level"`
 }
 
 func (e *Error) ToJsonByte() []byte {
@@ -81,10 +89,11 @@ func GetError(err error) *Error {
 		Line:     line,
 		Detail:   err.Error(),
 		Err:      err,
+		Level:    LevelFatal,
 	}
-	if errorPool != nil {
-		errorPool.add(e)
-	}
+	//if errorPool != nil {
+	//	errorPool.add(e)
+	//}
 	return e
 }
 
@@ -94,20 +103,20 @@ func GetErrorCode(err error, code string) *Error {
 	function := runtime.FuncForPC(pc[0])
 	file, line := function.FileLine(pc[0])
 	e := &Error{
-		Code:     "internal",
+		Code:     code,
 		File:     strings.Replace(filepath.Base(file), ".go", "", 1),
 		Function: filepath.Base(function.Name()),
 		Line:     line,
 		Detail:   err.Error(),
 		Err:      err,
 	}
-	if errorPool != nil {
-		errorPool.add(e)
-	}
+	//if errorPool != nil {
+	//	errorPool.add(e)
+	//}
 	return e
 }
 
-func UserError(msg string, code string) *Error {
+func UserError(code string, level string) *Error {
 	pc := make([]uintptr, 10)
 	runtime.Callers(2, pc)
 	function := runtime.FuncForPC(pc[0])
@@ -117,6 +126,7 @@ func UserError(msg string, code string) *Error {
 		File:     strings.Replace(filepath.Base(file), ".go", "", 1),
 		Function: function.Name(),
 		Line:     line,
-		Detail:   msg,
+		Detail:   "",
+		Level:    level,
 	}
 }
